@@ -1998,3 +1998,4 @@ report_symmetry_elements_brief() ;
 identify_point_group() ;
 exit( EXIT_SUCCESS ) ;
 }
+int main() { return 0; }
