@@ -42,8 +42,8 @@ elif fc.get_id() == 'intel'
   add_project_arguments('-axAVX2',    language: 'fortran')
   add_project_arguments('-r8',        language: 'fortran')
   add_project_arguments('-traceback', language: 'fortran')
-  add_project_link_arguments('-static', language: 'fortran')
-  add_project_link_arguments('-static', language: 'c') # icc will do linking
+#  add_project_link_arguments('-static', language: 'fortran')
+#  add_project_link_arguments('-static', language: 'c') # icc will do linking
 endif
 
 if cxx.get_id() == 'gcc'
@@ -65,27 +65,27 @@ dependencies = []
 dependencies_exe = []
 dependencies_sha = []
 
-if get_option('la_backend') == 'mkl'
-  libmkl = [fc.find_library('pthread')]
-  libmkl += fc.find_library('m')
-  libmkl += fc.find_library('dl')
-  if fc.get_id() == 'gcc'
-    libmkl_exe = [fc.find_library('mkl_gf_lp64')]
-    libmkl_exe += fc.find_library('mkl_gnu_thread')
-  elif fc.get_id() == 'intel'
-    libmkl_exe = [fc.find_library('mkl_intel_lp64')]
-    libmkl_exe += fc.find_library('mkl_intel_thread')
-  endif
-  libmkl_exe += fc.find_library('mkl_core')
-  libmkl_exe += fc.find_library('iomp5')
-  libmkl_sha = [fc.find_library('mkl_rt')]
-  dependencies += libmkl
-  dependencies_sha += libmkl_sha
-  dependencies_exe += libmkl_exe
-else
-  dependencies += fc.find_library('blas', required: true)
-  dependencies += fc.find_library('lapack', required: true)
-endif
+#if get_option('la_backend') == 'mkl'
+#  libmkl = [fc.find_library('pthread')]
+#  libmkl += fc.find_library('m')
+#  libmkl += fc.find_library('dl')
+#  if fc.get_id() == 'gcc'
+#    libmkl_exe = [fc.find_library('mkl_gf_lp64')]
+#    libmkl_exe += fc.find_library('mkl_gnu_thread')
+#  elif fc.get_id() == 'intel'
+#    libmkl_exe = [fc.find_library('mkl_intel_lp64')]
+#    libmkl_exe += fc.find_library('mkl_intel_thread')
+#  endif
+#  libmkl_exe += fc.find_library('mkl_core')
+#  libmkl_exe += fc.find_library('iomp5')
+#  libmkl_sha = [fc.find_library('mkl_rt')]
+#  dependencies += libmkl
+#  dependencies_sha += libmkl_sha
+#  dependencies_exe += libmkl_exe
+#else
+#  dependencies += fc.find_library('blas', required: true)
+#  dependencies += fc.find_library('lapack', required: true)
+#endif
 
 if fc.get_id() == 'gcc'
   add_project_arguments('-fopenmp', language: 'fortran')
@@ -331,7 +331,7 @@ xtb_test += 'TESTSUITE/gfn0.f90'
 xtb_test += 'TESTSUITE/peeq.f90'
 xtb_test += 'TESTSUITE/symmetry.f90'
 
-incdir = include_directories('include')
+incdir = include_directories('include','/Users/kruse/qc/miniconda3/include')
 
 xtb_srcs += mctc_srcs
 
@@ -339,25 +339,26 @@ xtb_srcs += mctc_srcs
 ## TARGETS
 ## ========================================== ##
 # create a static library from all sources
-xtb_lib_static = static_library(meson.project_name(),
-                                xtb_srcs,
+#xtb_lib_static = static_library(meson.project_name(),
+#                                xtb_srcs,
+#                                include_directories: incdir,
+#                                pic: true)
+
+xtb_lib_shared = shared_library(meson.project_name(),xtb_srcs,
+                                version: meson.project_version(),
+                                dependencies: dependencies,
                                 include_directories: incdir,
-                                pic: true)
+                                link_args: ['-qopenmp', '-mkl=parallel'],
+                                install: true)
 
 xtb_exe = executable(meson.project_name(),
                      xtb_main,
-                     dependencies: dependencies_exe,
+                     dependencies: dependencies,
                      include_directories: incdir,
-                     link_with: xtb_lib_static,
+                     link_with: xtb_lib_shared,
+                     link_args: '-qopenmp',
                      install: true)
 
-xtb_lib_shared = shared_library(meson.project_name(),
-                                version: meson.project_version(),
-                                dependencies: dependencies_sha,
-                                include_directories: incdir,
-                                link_whole: xtb_lib_static,
-                                link_args: '-fopenmp',
-                                install: true)
 
 xtb_dep = [declare_dependency(link_with: xtb_lib_shared), dependencies_sha]
 
@@ -384,9 +385,9 @@ install_data(xtb_parameter_files)
 ## ========================================== ##
 xtb_test = executable('xtb_test',
                       xtb_test,
-                      dependencies: dependencies_exe,
+                      dependencies: dependencies,
                       include_directories: incdir,
-                      link_with: xtb_lib_static)
+                      link_with: xtb_lib_shared)
 
 # make sure the correct library is loaded
 libenv = environment()
