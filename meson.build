@@ -356,7 +356,7 @@ xtb_exe = executable(meson.project_name(),
                      xtb_main,
                      dependencies: dependencies,
                      include_directories: incdir,
-                     link_with: xtb_lib_static,
+                     link_with: xtb_lib_shared,
                      link_args: ['-qopenmp', '-mkl=parallel'],
                      install: true)
 
@@ -389,7 +389,7 @@ xtb_test = executable('xtb_test',
                       dependencies: dependencies,
                       include_directories: incdir,
                       link_args: ['-qopenmp', '-mkl=parallel'],
-                      link_with: xtb_lib_static)
+                      link_with: xtb_lib_shared)
 
 # make sure the correct library is loaded
 libenv = environment()
