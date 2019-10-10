@@ -339,10 +339,11 @@ xtb_srcs += mctc_srcs
 ## TARGETS
 ## ========================================== ##
 # create a static library from all sources
-#xtb_lib_static = static_library(meson.project_name(),
-#                                xtb_srcs,
-#                                include_directories: incdir,
-#                                pic: true)
+xtb_lib_static = static_library(meson.project_name(),
+                                xtb_srcs,
+                                include_directories: incdir,
+#                                link_args: ['-static', '-mkl=parallel'],
+                                pic: true)
 
 xtb_lib_shared = shared_library(meson.project_name(),xtb_srcs,
                                 version: meson.project_version(),
@@ -355,8 +356,8 @@ xtb_exe = executable(meson.project_name(),
                      xtb_main,
                      dependencies: dependencies,
                      include_directories: incdir,
-                     link_with: xtb_lib_shared,
-                     link_args: '-qopenmp',
+                     link_with: xtb_lib_static,
+                     link_args: ['-qopenmp', '-mkl=parallel'],
                      install: true)
 
 
@@ -387,7 +388,8 @@ xtb_test = executable('xtb_test',
                       xtb_test,
                       dependencies: dependencies,
                       include_directories: incdir,
-                      link_with: xtb_lib_shared)
+                      link_args: ['-qopenmp', '-mkl=parallel'],
+                      link_with: xtb_lib_static)
 
 # make sure the correct library is loaded
 libenv = environment()
