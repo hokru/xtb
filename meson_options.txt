@@ -17,5 +17,7 @@
 
 option('la_backend', type: 'string', value: 'mkl',
        description : 'Linear algebra backend for program.')
-option('install_modules', type: 'boolean', value: false,
-       description : 'Install Fortran module files to include directory.')
+option('static', type: 'boolean', value: true,
+description: 'Produce statically linked executables')
+option('openmp', type: 'boolean', value: true,
+description: 'Use openMP parallelisation')

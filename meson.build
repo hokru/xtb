@@ -20,7 +20,7 @@ project('xtb',
         'fortran', 'c', 'cpp',
         version: '6.2.2',
         license: 'LGPL3',
-        meson_version: '>=0.49')
+        meson_version: '>=0.51')
 
 # build a configuration data containing all the important data to propagate
 # it to the automatically generated files
@@ -53,8 +53,10 @@ elif fc.get_id() == 'intel'
   add_project_arguments('-axAVX2',    language: 'fortran')
   add_project_arguments('-r8',        language: 'fortran')
   add_project_arguments('-traceback', language: 'fortran')
-  add_project_link_arguments('-static', language: 'fortran')
-  add_project_link_arguments('-static', language: 'c') # icc will do linking
+  if get_option('static')
+    add_project_link_arguments('-static', language: 'fortran')
+    add_project_link_arguments('-static', language: 'c') # icc will do linking
+  endif
 endif
 
 if cxx.get_id() == 'gcc'
@@ -77,9 +79,6 @@ dependencies_exe = []
 dependencies_sha = []
 
 if get_option('la_backend') == 'mkl'
-  libmkl = [fc.find_library('pthread')]
-  libmkl += fc.find_library('m')
-  libmkl += fc.find_library('dl')
   if fc.get_id() == 'gcc'
     libmkl_exe = [fc.find_library('mkl_gf_lp64')]
     libmkl_exe += fc.find_library('mkl_gnu_thread')
@@ -88,9 +87,7 @@ if get_option('la_backend') == 'mkl'
     libmkl_exe += fc.find_library('mkl_intel_thread')
   endif
   libmkl_exe += fc.find_library('mkl_core')
-  libmkl_exe += fc.find_library('iomp5')
   libmkl_sha = [fc.find_library('mkl_rt')]
-  dependencies += libmkl
   dependencies_sha += libmkl_sha
   dependencies_exe += libmkl_exe
 else
@@ -98,13 +95,18 @@ else
   dependencies += fc.find_library('lapack', required: true)
 endif
 
-if fc.get_id() == 'gcc'
-  add_project_arguments('-fopenmp', language: 'fortran')
-  add_project_link_arguments('-fopenmp', language: 'fortran')
-elif fc.get_id() == 'intel'
-  add_project_arguments('-qopenmp', language: 'fortran')
-  add_project_link_arguments('-qopenmp', language: 'fortran')
+if get_option('openmp')
+  if fc.get_id() == 'gcc'
+    add_project_arguments('-fopenmp', language: 'fortran')
+    add_project_link_arguments('-fopenmp', language: 'fortran')
+    add_project_link_arguments('-fopenmp', language: 'c')
+  elif fc.get_id() == 'intel'
+    add_project_arguments('-qopenmp', language: 'fortran')
+    add_project_link_arguments('-qopenmp', language: 'fortran')
+    add_project_link_arguments('-qopenmp', language: 'c')
+  endif
 endif
+
 dependencies += dependency('threads')
 
 # distribute dependencies for shared object and static executable
@@ -376,6 +378,7 @@ xtb_exe = executable(meson.project_name(),
                      dependencies: dependencies_exe,
                      include_directories: incdir,
                      link_with: xtb_lib_static,
+                     link_language: 'fortran',
                      install: true)
 
 xtb_lib_shared = shared_library(meson.project_name(),
@@ -383,7 +386,6 @@ xtb_lib_shared = shared_library(meson.project_name(),
                                 dependencies: dependencies_sha,
                                 include_directories: incdir,
                                 link_whole: xtb_lib_static,
-                                link_args: '-fopenmp',
                                 install: true)
 
 xtb_dep_static = [declare_dependency(link_whole: xtb_lib_static), dependencies_exe]
@@ -436,6 +438,7 @@ xtb_test = executable('xtb_test',
                       xtb_test,
                       dependencies: dependencies_exe,
                       include_directories: incdir,
+                      link_language: 'fortran',
                       link_with: xtb_lib_static)
 
 # make sure the correct library is loaded
